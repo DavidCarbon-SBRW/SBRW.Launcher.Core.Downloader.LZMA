@@ -1,0 +1,48 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;net6.0;net461;net472</TargetFrameworks>
+	  <Nullable>enable</Nullable>
+	  <LangVersion>8.0</LangVersion>
+	  <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+	  <Version>0.2.2</Version>
+	  <Authors>Soapbox Race World - Launcher Division</Authors>
+	  <Company>Soapbox Race World</Company>
+	  <Copyright>© Soapbox Race World</Copyright>
+	  <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+	  <NeutralLanguage>en</NeutralLanguage>
+	  <PackageLicenseExpression>MIT</PackageLicenseExpression>
+	  <PackageIcon>Logo_512.png</PackageIcon>
+	  <PackageIconUrl />
+	  <RepositoryUrl>https://github.com/DavidCarbon-SBRW/SBRW.Launcher.Core.Downloader.LZMA</RepositoryUrl>
+	  <PackageProjectUrl>https://github.com/DavidCarbon-SBRW/SBRW.Launcher.Core.Downloader.LZMA</PackageProjectUrl>
+	  <Description>The Classic Downloader Library built to Download Game Files using LZMA (x86 Only!)</Description>
+	  <PackageTags>Classic, Game, Downloader, LZMA</PackageTags>
+	  <PackageReleaseNotes></PackageReleaseNotes>
+	  <RepositoryType>git</RepositoryType>
+	  <GenerateDocumentationFile>true</GenerateDocumentationFile>
+	  <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+	  <!-- Required: Full Debugging -->
+	  <DebugType>full</DebugType>
+	  <DebugSymbols>true</DebugSymbols>
+	  <!-- Required: Publish the repository URL in the built .nupkg (in the NuSpec <Repository> element) -->
+	  <PublishRepositoryUrl>true</PublishRepositoryUrl>
+	  <!-- Required: Build symbol package (.snupkg) to distribute the PDB containing Source Link -->
+	  <IncludeSymbols>true</IncludeSymbols>
+	  <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+	  <!-- Required: Include symbols files if Self-Hosted Nuget Feed does not support symbol packages -->
+	  <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
+	  <PlatformTarget>x86</PlatformTarget>
+  </PropertyGroup>
+
+	<ItemGroup>
+		<None Include="Resources\Icon\Logo_512.png">
+			<Pack>True</Pack>
+			<PackagePath></PackagePath>
+		</None>
+	</ItemGroup>
+
+	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
+		<Exec Command="if &quot;$(Configuration)&quot; == &quot;Release&quot; (&#xD;&#xA;if exist &quot;$(SolutionDir)Keys\Launcher.p12&quot; (&quot;C:\Program Files (x86)\Microsoft SDKs\ClickOnce\SignTool\signtool.exe&quot; sign /f &quot;$(SolutionDir)Keys\Launcher.p12&quot; /p &quot;Launcher Development CRT&quot; /d &quot;Soapbox Race World&quot; /du &quot;https://soapboxrace.world&quot; /tr http://timestamp.digicert.com /td SHA256 &quot;$(TargetPath)&quot;)&#xD;&#xA;if exist &quot;$(SolutionDir)Keys\Launcher.p12&quot; (&quot;C:\Program Files (x86)\Microsoft SDKs\ClickOnce\SignTool\signtool.exe&quot; sign /f &quot;$(SolutionDir)Keys\Launcher.p12&quot; /p &quot;Launcher Development CRT&quot; /d &quot;Soapbox Race World&quot; /du &quot;https://soapboxrace.world&quot; /tr http://timestamp.digicert.com /td SHA256 &quot;$(TargetDir)SBRW.*.dll&quot;)&#xD;&#xA;)&#xD;&#xA;" />
+	</Target>
+</Project>
