@@ -144,9 +144,9 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="fe"></param>
-        public Download_LZMA_Data(ISynchronizeInvoke fe) : this(fe, 3, 3, 16, DateTime.Now)
+        public Download_LZMA_Data()
         {
+            new Download_LZMA_Data(3, 3, 16, DateTime.Now);
         }
         /// <summary>
         /// 
@@ -157,7 +157,7 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
         /// <param name="downloadChunks"></param>
         /// <param name="Start_Time"></param>
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        public Download_LZMA_Data(ISynchronizeInvoke fe, int hashThreads, int downloadThreads, int downloadChunks, DateTime Start_Time)
+        public Download_LZMA_Data(int hashThreads, int downloadThreads, int downloadChunks, DateTime Start_Time)
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         {
             this.MHashThreads = hashThreads;
@@ -834,20 +834,6 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
         /// </summary>
         /// <param name="url"></param>
         /// <returns></returns>
-        public static string GetXml(string url)
-        {
-            byte[] data = GetData(url);
-            if (IsLzma(data))
-            {
-                return DecompressLZMA(data);
-            }
-            return Encoding.UTF8.GetString(data).Trim();
-        }
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="url"></param>
-        /// <returns></returns>
         public static byte[] GetData(string url)
         {
             Uri URLCall = new Uri(url);
@@ -855,7 +841,10 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
                 TimeSpan.FromSeconds(Download_LZMA_Settings.Launcher_WebCall_Timeout_Cache + 1).TotalMilliseconds : TimeSpan.FromMinutes(1).TotalMilliseconds);
             var Client = new WebClient();
 
-            if (!Download_LZMA_Settings.Alternative_WebCalls) { Client = new WebClientWithTimeout(); }
+            if (!Download_LZMA_Settings.Alternative_WebCalls) 
+            {
+                Client = new WebClientWithTimeout(); 
+            }
             else
             {
                 Client.Headers.Add("user-agent", Download_LZMA_Settings.Header_LZMA);
@@ -877,32 +866,6 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
         public static bool IsLzma(byte[] arr)
         {
             return arr.Length >= 2 && arr[0] == 93 && arr[1] == 0;
-        }
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="compressedFile"></param>
-        /// <returns></returns>
-        public static string DecompressLZMA(byte[] compressedFile)
-        {
-            IntPtr intPtr = new IntPtr(compressedFile.Length - 13);
-            byte[] array = new byte[intPtr.ToInt64()];
-            IntPtr outPropsSize = new IntPtr(5);
-            byte[] array2 = new byte[5];
-            compressedFile.CopyTo(array, 13);
-            for (int i = 0; i < 5; i++)
-            {
-                array2[i] = compressedFile[i];
-            }
-            int num = 0;
-            for (int j = 0; j < 8; j++)
-            {
-                num += (int)compressedFile[j + 5] << 8 * j;
-            }
-            IntPtr intPtr2 = new IntPtr(num);
-            byte[] array3 = new byte[num];
-            _ = Download_LZMA.LzmaUncompress(array3, intPtr2, array, intPtr, array2, outPropsSize);
-            return new string(Encoding.UTF8.GetString(array3).ToCharArray());
         }
     }
 }
