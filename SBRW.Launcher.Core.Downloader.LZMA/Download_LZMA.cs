@@ -19,7 +19,7 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
         /// <param name="outPropsSize"></param>
         /// <returns></returns>
         [DllImport("LZMA.dll", EntryPoint = "LzmaUncompress", CharSet = CharSet.Auto, ExactSpelling = false, SetLastError = true, CallingConvention = CallingConvention.StdCall)]
-        public static extern int LzmaUncompress([In, Out] byte[] dest, [In, Out] IntPtr destLen, [In, Out] byte[] src, [In, Out] IntPtr srcLen, [In, Out] byte[] outProps, [In, Out] IntPtr outPropsSize);
+        public static extern int LzmaUncompress(byte[] dest, ref IntPtr destLen, byte[] src, ref IntPtr srcLen, byte[] outProps, IntPtr outPropsSize);
         /// <summary>
         /// 
         /// </summary>
@@ -31,6 +31,6 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
         /// <param name="outPropsSize"></param>
         /// <returns></returns>
         [DllImport("LZMA.dll", EntryPoint = "LzmaUncompressBuf2File", CharSet = CharSet.Auto, ExactSpelling = false, SetLastError = true, CallingConvention = CallingConvention.StdCall)]
-        public static extern int LzmaUncompressBuf2File([In] string destFile, [In, Out] IntPtr destLen, [In, Out] byte[] src, [In, Out] IntPtr srcLen, byte[] outProps, [In, Out] IntPtr outPropsSize);
+        public static extern int LzmaUncompressBuf2File(string destFile, ref IntPtr destLen, byte[] src, ref IntPtr srcLen, byte[] outProps, IntPtr outPropsSize);
     }
 }
