@@ -79,7 +79,10 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
         private XmlDocument? MIndexCached { get; set; }
         private bool MStopFlag { get; set; }
         private XmlDocument? Xml_Result { get; set; }
-        private Download_LZMA_Data_Hash LZMA_Data_Hash { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public Download_LZMA_Data_Hash? LZMA_Data_Hash { get; set; }
         /// <summary>
         /// 
         /// </summary>
@@ -147,8 +150,61 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
         /// 
         /// </summary>
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        public Download_LZMA_Data() => new Download_LZMA_Data(3, 3, 16, DateTime.Now);
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        public Download_LZMA_Data()
+        {
+            this.MHashThreads = 3;
+            this.Progress_Start_Time = DateTime.Now;
+            this.MDownloadManager = new Download_LZMA_Data_Manager(3, 16);
+            if(LZMA_Data_Hash == default)
+            {
+                LZMA_Data_Hash = new Download_LZMA_Data_Hash();
+            }
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="hashThreads"></param>
+        public Download_LZMA_Data(int hashThreads)
+        {
+            this.MHashThreads = hashThreads;
+            this.Progress_Start_Time = DateTime.Now;
+            this.MDownloadManager = new Download_LZMA_Data_Manager(3, 16);
+            if (LZMA_Data_Hash == default)
+            {
+                LZMA_Data_Hash = new Download_LZMA_Data_Hash();
+            }
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="hashThreads"></param>
+        /// <param name="downloadThreads"></param>
+        public Download_LZMA_Data(int hashThreads, int downloadThreads)
+        {
+            this.MHashThreads = hashThreads;
+            this.Progress_Start_Time = DateTime.Now;
+            this.MDownloadManager = new Download_LZMA_Data_Manager(downloadThreads, 16);
+            if (LZMA_Data_Hash == default)
+            {
+                LZMA_Data_Hash = new Download_LZMA_Data_Hash();
+            }
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="hashThreads"></param>
+        /// <param name="downloadThreads"></param>
+        /// <param name="downloadChunks"></param>
+        public Download_LZMA_Data(int hashThreads, int downloadThreads, int downloadChunks)
+        {
+            this.MHashThreads = hashThreads;
+            this.Progress_Start_Time = DateTime.Now;
+            this.MDownloadManager = new Download_LZMA_Data_Manager(downloadThreads, downloadChunks);
+            if (LZMA_Data_Hash == default)
+            {
+                LZMA_Data_Hash = new Download_LZMA_Data_Hash();
+            }
+        }
         /// <summary>
         /// 
         /// </summary>
@@ -156,13 +212,16 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
         /// <param name="downloadThreads"></param>
         /// <param name="downloadChunks"></param>
         /// <param name="Start_Time"></param>
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         public Download_LZMA_Data(int hashThreads, int downloadThreads, int downloadChunks, DateTime Start_Time)
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         {
             this.MHashThreads = hashThreads;
             this.Progress_Start_Time = Start_Time;
             this.MDownloadManager = new Download_LZMA_Data_Manager(downloadThreads, downloadChunks);
+            if (LZMA_Data_Hash == default)
+            {
+                LZMA_Data_Hash = new Download_LZMA_Data_Hash();
+            }
         }
         /// <summary>
         /// 

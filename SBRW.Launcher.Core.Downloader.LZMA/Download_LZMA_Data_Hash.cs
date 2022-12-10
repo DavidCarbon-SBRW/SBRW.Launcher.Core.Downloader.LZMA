@@ -33,11 +33,57 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
         /// <summary>
         /// 
         /// </summary>
-        public bool Use_Cache { get; set; } = true;
+        public bool Use_Cache { get; set; }
         /// <summary>
         /// 
         /// </summary>
-        public Download_LZMA_Data_Hash() => new Download_LZMA_Data_Hash(0, true, new Dictionary<string, Download_LZMA_Data_Hash_Tuple>(), new Queue<string>());
+        public Download_LZMA_Data_Hash()
+        {
+            Queue_Hash_Lock = new object();
+            Worker_Count = 0;
+            Use_Cache = true;
+            File_List = new Dictionary<string, Download_LZMA_Data_Hash_Tuple>();
+            Queue_Hash = new Queue<string>();
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="P_Worker_Count"></param>
+        public Download_LZMA_Data_Hash(int P_Worker_Count)
+        {
+            Queue_Hash_Lock = new object();
+            Worker_Count = P_Worker_Count;
+            Use_Cache = true;
+            File_List = new Dictionary<string, Download_LZMA_Data_Hash_Tuple>();
+            Queue_Hash = new Queue<string>();
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="P_Worker_Count"></param>
+        /// <param name="P_Use_Cache"></param>
+        public Download_LZMA_Data_Hash(int P_Worker_Count, bool P_Use_Cache)
+        {
+            Queue_Hash_Lock = new object();
+            Worker_Count = P_Worker_Count;
+            Use_Cache = P_Use_Cache;
+            File_List = new Dictionary<string, Download_LZMA_Data_Hash_Tuple>();
+            Queue_Hash = new Queue<string>();
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="P_Worker_Count"></param>
+        /// <param name="P_Use_Cache"></param>
+        /// <param name="P_File_List"></param>
+        public Download_LZMA_Data_Hash(int P_Worker_Count, bool P_Use_Cache, Dictionary<string, Download_LZMA_Data_Hash_Tuple> P_File_List)
+        {
+            Queue_Hash_Lock = new object();
+            Worker_Count = P_Worker_Count;
+            Use_Cache = P_Use_Cache;
+            File_List = P_File_List;
+            Queue_Hash = new Queue<string>();
+        }
         /// <summary>
         /// 
         /// </summary>
