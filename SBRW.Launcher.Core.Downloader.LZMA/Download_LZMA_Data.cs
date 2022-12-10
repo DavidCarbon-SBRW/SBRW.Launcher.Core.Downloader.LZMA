@@ -10,7 +10,8 @@ using System.Net.Cache;
 using System.Text;
 using System.Threading;
 using System.Xml;
-using static SBRW.Launcher.Core.Downloader.LZMA.Download_LZMA_Data_Manager;
+using static SBRW.Launcher.Core.Downloader.LZMA.Download_LZMA_Enumerator;
+//using static SBRW.Launcher.Core.Downloader.LZMA.Download_LZMA_Data_Manager;
 
 namespace SBRW.Launcher.Core.Downloader.LZMA
 {
@@ -75,9 +76,10 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
         /// </summary>
         public int MHashThreads { get; internal set; }
         private Download_LZMA_Data_Manager MDownloadManager { get; set; }
-        private static XmlDocument? MIndexCached { get; set; }
-        private static bool MStopFlag { get; set; }
+        private XmlDocument? MIndexCached { get; set; }
+        private bool MStopFlag { get; set; }
         private XmlDocument? Xml_Result { get; set; }
+        private Download_LZMA_Data_Hash LZMA_Data_Hash { get; set; }
         /// <summary>
         /// 
         /// </summary>
@@ -144,20 +146,18 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="fe"></param>
-        public Download_LZMA_Data(ISynchronizeInvoke fe) : this(fe, 3, 3, 16, DateTime.Now)
-        {
-        }
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        public Download_LZMA_Data() => new Download_LZMA_Data(3, 3, 16, DateTime.Now);
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="fe"></param>
         /// <param name="hashThreads"></param>
         /// <param name="downloadThreads"></param>
         /// <param name="downloadChunks"></param>
         /// <param name="Start_Time"></param>
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        public Download_LZMA_Data(ISynchronizeInvoke fe, int hashThreads, int downloadThreads, int downloadChunks, DateTime Start_Time)
+        public Download_LZMA_Data(int hashThreads, int downloadThreads, int downloadChunks, DateTime Start_Time)
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         {
             this.MHashThreads = hashThreads;
@@ -355,8 +355,8 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
                     this.MDownloadManager.Initialize(indexFile, text);
                     if (flag)
                     {
-                        Download_LZMA_Data_Hash.Live_Instance.Clear();
-                        Download_LZMA_Data_Hash.Live_Instance.Start(indexFile, text3, text2 + ".hsh", this.MHashThreads);
+                        LZMA_Data_Hash.Clear();
+                        LZMA_Data_Hash.Start(indexFile, text3, text2 + ".hsh", this.MHashThreads);
                     }
                     int num7 = 0;
                     List<string> list = new List<string>();
@@ -406,7 +406,7 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
                                 i++;
                             }
                         }
-                        else if (!Download_LZMA_Data_Hash.Live_Instance.HashesMatch(fileName))
+                        else if (!LZMA_Data_Hash.HashesMatch(fileName))
                         {
                             if (i <= num10)
                             {
@@ -483,7 +483,7 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
                             num6 = int.Parse(xmlNode2.SelectSingleNode("section").InnerText);
                         }
                         string text7 = string.Empty;
-                        if (xmlNode2.SelectSingleNode("hash") != null && Download_LZMA_Data_Hash.Live_Instance.HashesMatch(text6))
+                        if (xmlNode2.SelectSingleNode("hash") != null && LZMA_Data_Hash.HashesMatch(text6))
                         {
                             num16 += num15;
                             if (xmlNode3 != null)
@@ -556,7 +556,7 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
                                     num13 = num6;
                                     num5 += (long)array2.Length;
                                     num6++;
-                                    if ((this.MDownloadManager.GetStatus(string.Format("{0}/section{1}.dat", text, num6)) != DownloadStatus.Unknown) && 
+                                    if ((this.MDownloadManager.GetStatus(string.Format("{0}/section{1}.dat", text, num6)) != Download_Status.Unknown) && 
                                         (num5 < Header_Length_Compressed))
                                     {
                                         this.MDownloadManager.ScheduleFile(string.Format("{0}/section{1}.dat", text, num6));
@@ -663,7 +663,7 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
 
                     if (!MStopFlag)
                     {
-                        Download_LZMA_Data_Hash.Live_Instance.WriteHashCache(text2 + ".hsh", false);
+                        LZMA_Data_Hash.WriteHashCache(text2 + ".hsh", false);
                     }
                     
                     if (this.Complete != null && !MStopFlag)
@@ -686,7 +686,7 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
             {
                 if (flag)
                 {
-                    Download_LZMA_Data_Hash.Live_Instance.Clear();
+                    LZMA_Data_Hash.Clear();
                 }
                 this.MDownloadManager.Clear();
                 this.MDownloading = false;
@@ -731,8 +731,8 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
                     Client.Headers.Add("Accept-Encoding", "gzip,deflate");
                     Client.Headers.Add("Accept-Charset", "ISO-8859-1,utf-8;q=0.7,*;q=0.7");
                     XmlNodeList xmlNodeList = indexFile.SelectNodes("/index/fileinfo");
-                    Download_LZMA_Data_Hash.Live_Instance.Clear();
-                    Download_LZMA_Data_Hash.Live_Instance.Start(indexFile, text2, text + ".hsh", this.MHashThreads);
+                    LZMA_Data_Hash.Clear();
+                    LZMA_Data_Hash.Start(indexFile, text2, text + ".hsh", this.MHashThreads);
                     long Total_Current_Length = 0;
                     ulong num3 = 0;
                     ulong num4 = 0;
@@ -756,7 +756,7 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
                         long Add_Length = long.Parse(xmlNode.SelectSingleNode("length").InnerText);
                         if (xmlNode.SelectSingleNode("hash") != null)
                         {
-                            if (!Download_LZMA_Data_Hash.Live_Instance.HashesMatch(text4))
+                            if (!LZMA_Data_Hash.HashesMatch(text4))
                             {
                                 num3 += ulong.Parse(xmlNode.SelectSingleNode("length").InnerText);
                                 ulong num7;
@@ -797,7 +797,7 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
                     }
                     if (flag3)
                     {
-                        Download_LZMA_Data_Hash.Live_Instance.WriteHashCache(text + ".hsh", true);
+                        LZMA_Data_Hash.WriteHashCache(text + ".hsh", true);
                     }
                     if (flag4)
                     {
@@ -825,7 +825,7 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
             {
                 if (flag2)
                 {
-                    Download_LZMA_Data_Hash.Live_Instance.Clear();
+                    LZMA_Data_Hash.Clear();
                 }
             }
         }
