@@ -9,7 +9,7 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
     /// </summary>
     public static class Download_LZMA_Settings
     {
-        private static string Version_Cache { get; set; } = "0.0.2.1";
+        private static string Version_Cache { get; set; } = "0.0.2.4";
         private static bool Version_Check { get; set; }
         private static string Version 
         {

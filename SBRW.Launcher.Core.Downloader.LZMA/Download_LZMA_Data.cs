@@ -10,7 +10,8 @@ using System.Net.Cache;
 using System.Text;
 using System.Threading;
 using System.Xml;
-using static SBRW.Launcher.Core.Downloader.LZMA.Download_LZMA_Data_Manager;
+using static SBRW.Launcher.Core.Downloader.LZMA.Download_LZMA_Enumerator;
+//using static SBRW.Launcher.Core.Downloader.LZMA.Download_LZMA_Data_Manager;
 
 namespace SBRW.Launcher.Core.Downloader.LZMA
 {
@@ -75,9 +76,10 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
         /// </summary>
         public int MHashThreads { get; internal set; }
         private Download_LZMA_Data_Manager MDownloadManager { get; set; }
-        private static XmlDocument? MIndexCached { get; set; }
-        private static bool MStopFlag { get; set; }
+        private XmlDocument? MIndexCached { get; set; }
+        private bool MStopFlag { get; set; }
         private XmlDocument? Xml_Result { get; set; }
+        private Download_LZMA_Data_Hash LZMA_Data_Hash { get; set; }
         /// <summary>
         /// 
         /// </summary>
@@ -144,14 +146,12 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
         /// <summary>
         /// 
         /// </summary>
-        public Download_LZMA_Data()
-        {
-            new Download_LZMA_Data(3, 3, 16, DateTime.Now);
-        }
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        public Download_LZMA_Data() => new Download_LZMA_Data(3, 3, 16, DateTime.Now);
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="fe"></param>
         /// <param name="hashThreads"></param>
         /// <param name="downloadThreads"></param>
         /// <param name="downloadChunks"></param>
@@ -176,6 +176,7 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
         public void StartDownload(string indexUrl, string package, string patchPath, bool calculateHashes, bool useIndexCache, int downloadSize)
         {
             MStopFlag = false;
+            this.LZMA_Data_Hash = new Download_LZMA_Data_Hash();
             this.MThread = new Thread(new ParameterizedThreadStart(this.Download));
             string[] parameter = new string[]
             {
@@ -355,8 +356,8 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
                     this.MDownloadManager.Initialize(indexFile, text);
                     if (flag)
                     {
-                        Download_LZMA_Data_Hash.Live_Instance.Clear();
-                        Download_LZMA_Data_Hash.Live_Instance.Start(indexFile, text3, text2 + ".hsh", this.MHashThreads);
+                        LZMA_Data_Hash.Clear();
+                        LZMA_Data_Hash.Start(indexFile, text3, text2 + ".hsh", this.MHashThreads);
                     }
                     int num7 = 0;
                     List<string> list = new List<string>();
@@ -406,7 +407,7 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
                                 i++;
                             }
                         }
-                        else if (!Download_LZMA_Data_Hash.Live_Instance.HashesMatch(fileName))
+                        else if (!LZMA_Data_Hash.HashesMatch(fileName))
                         {
                             if (i <= num10)
                             {
@@ -483,7 +484,7 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
                             num6 = int.Parse(xmlNode2.SelectSingleNode("section").InnerText);
                         }
                         string text7 = string.Empty;
-                        if (xmlNode2.SelectSingleNode("hash") != null && Download_LZMA_Data_Hash.Live_Instance.HashesMatch(text6))
+                        if (xmlNode2.SelectSingleNode("hash") != null && LZMA_Data_Hash.HashesMatch(text6))
                         {
                             num16 += num15;
                             if (xmlNode3 != null)
@@ -556,7 +557,7 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
                                     num13 = num6;
                                     num5 += (long)array2.Length;
                                     num6++;
-                                    if ((this.MDownloadManager.GetStatus(string.Format("{0}/section{1}.dat", text, num6)) != DownloadStatus.Unknown) && 
+                                    if ((this.MDownloadManager.GetStatus(string.Format("{0}/section{1}.dat", text, num6)) != Download_Status.Unknown) && 
                                         (num5 < Header_Length_Compressed))
                                     {
                                         this.MDownloadManager.ScheduleFile(string.Format("{0}/section{1}.dat", text, num6));
@@ -626,7 +627,7 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
                                 num18 -= 13;
                                 IntPtr intPtr = new IntPtr(num18);
                                 IntPtr value = new IntPtr(num22);
-                                int num24 = Download_LZMA.LzmaUncompressBuf2File(text6, value, array3, intPtr, array5, outPropsSize);
+                                int num24 = Download_LZMA.LzmaUncompressBuf2File(text6, ref value, array3, ref intPtr, array5, outPropsSize);
 
                                 /* TODO: use total file lenght and extracted file length instead of files checked and total array size. */
                                 fileschecked =+ Sub_Index_Hash_Length;
@@ -663,7 +664,7 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
 
                     if (!MStopFlag)
                     {
-                        Download_LZMA_Data_Hash.Live_Instance.WriteHashCache(text2 + ".hsh", false);
+                        LZMA_Data_Hash.WriteHashCache(text2 + ".hsh", false);
                     }
                     
                     if (this.Complete != null && !MStopFlag)
@@ -686,7 +687,7 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
             {
                 if (flag)
                 {
-                    Download_LZMA_Data_Hash.Live_Instance.Clear();
+                    LZMA_Data_Hash.Clear();
                 }
                 this.MDownloadManager.Clear();
                 this.MDownloading = false;
@@ -731,8 +732,8 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
                     Client.Headers.Add("Accept-Encoding", "gzip,deflate");
                     Client.Headers.Add("Accept-Charset", "ISO-8859-1,utf-8;q=0.7,*;q=0.7");
                     XmlNodeList xmlNodeList = indexFile.SelectNodes("/index/fileinfo");
-                    Download_LZMA_Data_Hash.Live_Instance.Clear();
-                    Download_LZMA_Data_Hash.Live_Instance.Start(indexFile, text2, text + ".hsh", this.MHashThreads);
+                    LZMA_Data_Hash.Clear();
+                    LZMA_Data_Hash.Start(indexFile, text2, text + ".hsh", this.MHashThreads);
                     long Total_Current_Length = 0;
                     ulong num3 = 0;
                     ulong num4 = 0;
@@ -756,7 +757,7 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
                         long Add_Length = long.Parse(xmlNode.SelectSingleNode("length").InnerText);
                         if (xmlNode.SelectSingleNode("hash") != null)
                         {
-                            if (!Download_LZMA_Data_Hash.Live_Instance.HashesMatch(text4))
+                            if (!LZMA_Data_Hash.HashesMatch(text4))
                             {
                                 num3 += ulong.Parse(xmlNode.SelectSingleNode("length").InnerText);
                                 ulong num7;
@@ -797,7 +798,7 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
                     }
                     if (flag3)
                     {
-                        Download_LZMA_Data_Hash.Live_Instance.WriteHashCache(text + ".hsh", true);
+                        LZMA_Data_Hash.WriteHashCache(text + ".hsh", true);
                     }
                     if (flag4)
                     {
@@ -825,9 +826,23 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
             {
                 if (flag2)
                 {
-                    Download_LZMA_Data_Hash.Live_Instance.Clear();
+                    LZMA_Data_Hash.Clear();
                 }
             }
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="url"></param>
+        /// <returns></returns>
+        public static string GetXml(string url)
+        {
+            byte[] data = GetData(url);
+            if (IsLzma(data))
+            {
+                return DecompressLZMA(data);
+            }
+            return Encoding.UTF8.GetString(data).Trim();
         }
         /// <summary>
         /// 
@@ -841,10 +856,7 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
                 TimeSpan.FromSeconds(Download_LZMA_Settings.Launcher_WebCall_Timeout_Cache + 1).TotalMilliseconds : TimeSpan.FromMinutes(1).TotalMilliseconds);
             var Client = new WebClient();
 
-            if (!Download_LZMA_Settings.Alternative_WebCalls) 
-            {
-                Client = new WebClientWithTimeout(); 
-            }
+            if (!Download_LZMA_Settings.Alternative_WebCalls) { Client = new WebClientWithTimeout(); }
             else
             {
                 Client.Headers.Add("user-agent", Download_LZMA_Settings.Header_LZMA);
@@ -866,6 +878,32 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
         public static bool IsLzma(byte[] arr)
         {
             return arr.Length >= 2 && arr[0] == 93 && arr[1] == 0;
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="compressedFile"></param>
+        /// <returns></returns>
+        public static string DecompressLZMA(byte[] compressedFile)
+        {
+            IntPtr intPtr = new IntPtr(compressedFile.Length - 13);
+            byte[] array = new byte[intPtr.ToInt64()];
+            IntPtr outPropsSize = new IntPtr(5);
+            byte[] array2 = new byte[5];
+            compressedFile.CopyTo(array, 13);
+            for (int i = 0; i < 5; i++)
+            {
+                array2[i] = compressedFile[i];
+            }
+            int num = 0;
+            for (int j = 0; j < 8; j++)
+            {
+                num += (int)compressedFile[j + 5] << 8 * j;
+            }
+            IntPtr intPtr2 = new IntPtr(num);
+            byte[] array3 = new byte[num];
+            _ = Download_LZMA.LzmaUncompress(array3, ref intPtr2, array, ref intPtr, array2, outPropsSize);
+            return new string(Encoding.UTF8.GetString(array3).ToCharArray());
         }
     }
 }

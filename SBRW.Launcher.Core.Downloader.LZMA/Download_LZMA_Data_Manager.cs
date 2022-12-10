@@ -6,6 +6,7 @@ using System.Net;
 using System.Net.Cache;
 using System.Threading;
 using System.Xml;
+using static SBRW.Launcher.Core.Downloader.LZMA.Download_LZMA_Enumerator;
 
 namespace SBRW.Launcher.Core.Downloader.LZMA
 {
@@ -40,9 +41,7 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
         /// <summary>
         /// 
         /// </summary>
-        public Download_LZMA_Data_Manager() : this(3, 16)
-        {
-        }
+        public Download_LZMA_Data_Manager() => new Download_LZMA_Data_Manager(3, 16);
         /// <summary>
         /// 
         /// </summary>
@@ -104,9 +103,9 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
                                 }
                                 lock (this.Download_List[value])
                                 {
-                                    if (this.Download_List[value].Status != DownloadStatus.Canceled)
+                                    if (this.Download_List[value].Status != Download_Status.Canceled)
                                     {
-                                        this.Download_List[value].Status = DownloadStatus.Downloading;
+                                        this.Download_List[value].Status = Download_Status.Downloading;
                                     }
                                 }
                                 while (webClient.IsBusy)
@@ -114,17 +113,17 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
                                     Thread.Sleep(100);
                                 }
                                 webClient.DownloadDataAsync(new Uri(value), value);
-                                DownloadStatus status = DownloadStatus.Downloading;
-                                while (status == DownloadStatus.Downloading)
+                                Download_Status status = Download_Status.Downloading;
+                                while (status == Download_Status.Downloading)
                                 {
                                     status = this.Download_List[value].Status;
-                                    if (status == DownloadStatus.Canceled)
+                                    if (status == Download_Status.Canceled)
                                     {
                                         break;
                                     }
                                     Thread.Sleep(100);
                                 }
-                                if (status == DownloadStatus.Canceled)
+                                if (status == Download_Status.Canceled)
                                 {
                                     webClient.CancelAsync();
                                 }
@@ -179,9 +178,9 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
                                 }
                                 lock (this.Download_List[value])
                                 {
-                                    if (this.Download_List[value].Status != DownloadStatus.Canceled)
+                                    if (this.Download_List[value].Status != Download_Status.Canceled)
                                     {
-                                        this.Download_List[value].Status = DownloadStatus.Downloading;
+                                        this.Download_List[value].Status = Download_Status.Downloading;
                                     }
                                 }
                                 while (webClient.IsBusy)
@@ -189,17 +188,17 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
                                     Thread.Sleep(100);
                                 }
                                 webClient.DownloadDataAsync(new Uri(value), value);
-                                DownloadStatus status = DownloadStatus.Downloading;
-                                while (status == DownloadStatus.Downloading)
+                                Download_Status status = Download_Status.Downloading;
+                                while (status == Download_Status.Downloading)
                                 {
                                     status = this.Download_List[value].Status;
-                                    if (status == DownloadStatus.Canceled)
+                                    if (status == Download_Status.Canceled)
                                     {
                                         break;
                                     }
                                     Thread.Sleep(100);
                                 }
-                                if (status == DownloadStatus.Canceled)
+                                if (status == Download_Status.Canceled)
                                 {
                                     webClient.CancelAsync();
                                 }
@@ -247,7 +246,7 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
                             this.Active_Chunks_Max++;
                         }
                     }
-                    this.Download_List[key].Status = DownloadStatus.Canceled;
+                    this.Download_List[key].Status = Download_Status.Canceled;
                     this.Download_List[key].Data = null;
                 }
             }
@@ -276,7 +275,7 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
                             this.Active_Chunks_Max++;
                         }
                     }
-                    this.Download_List[fileName].Status = DownloadStatus.Canceled;
+                    this.Download_List[fileName].Status = Download_Status.Canceled;
                     this.Download_List[fileName].Data = null;
                 }
             }
@@ -312,15 +311,15 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
                     {
                         lock (this.Download_List[str])
                         {
-                            if (this.Download_List[str].Status == DownloadStatus.Canceled || this.Workers_Max <= 1)
+                            if (this.Download_List[str].Status == Download_Status.Canceled || this.Workers_Max <= 1)
                             {
                                 this.Download_List[str].Data = default;
-                                this.Download_List[str].Status = DownloadStatus.Canceled;
+                                this.Download_List[str].Status = Download_Status.Canceled;
                             }
                             else
                             {
                                 this.Download_List[str].Data = default;
-                                this.Download_List[str].Status = DownloadStatus.Queued;
+                                this.Download_List[str].Status = Download_Status.Queued;
                                 lock (this.Download_Queue)
                                 {
                                     this.Download_Queue.AddLast(str);
@@ -342,11 +341,11 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
             {
                 lock (this.Download_List[str])
                 {
-                    if (this.Download_List[str].Status != DownloadStatus.Downloaded)
+                    if (this.Download_List[str].Status != Download_Status.Downloaded)
                     {
                         this.Download_List[str].Data = new byte[(int)e.Result.Length];
                         Buffer.BlockCopy(e.Result, 0, this.Download_List[str].Data, 0, (int)e.Result.Length);
-                        this.Download_List[str].Status = DownloadStatus.Downloaded;
+                        this.Download_List[str].Status = Download_Status.Downloaded;
                     }
                 }
             }
@@ -358,14 +357,14 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
         /// <returns></returns>
         public byte[] GetFile(string fileName)
         {
-            DownloadStatus status;
+            Download_Status status;
             byte[] data = null;
             this.ScheduleFile(fileName);
             lock (this.Download_List[fileName])
             {
                 status = this.Download_List[fileName].Status;
             }
-            while (status != DownloadStatus.Downloaded && status != DownloadStatus.Canceled)
+            while (status != Download_Status.Downloaded && status != Download_Status.Canceled)
             {
                 Thread.Sleep(100);
                 lock (this.Download_List[fileName])
@@ -373,7 +372,7 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
                     status = this.Download_List[fileName].Status;
                 }
             }
-            if (this.Download_List[fileName].Status == DownloadStatus.Downloaded)
+            if (this.Download_List[fileName].Status == Download_Status.Downloaded)
             {
                 lock (this.Download_List[fileName])
                 {
@@ -393,11 +392,11 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
         /// </summary>
         /// <param name="fileName"></param>
         /// <returns></returns>
-        public DownloadStatus GetStatus(string fileName)
+        public Download_Status GetStatus(string fileName)
         {
             if (!this.Download_List.ContainsKey(fileName))
             {
-                return DownloadStatus.Unknown;
+                return Download_Status.Unknown;
             }
             else
             {
@@ -438,8 +437,8 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
         {
             if (this.Download_List.ContainsKey(fileName))
             {
-                if (this.Download_List[fileName].Status != DownloadStatus.Queued && 
-                    this.Download_List[fileName].Status != DownloadStatus.Canceled)
+                if (this.Download_List[fileName].Status != Download_Status.Queued && 
+                    this.Download_List[fileName].Status != Download_Status.Canceled)
                 {
                     return;
                 }
@@ -457,7 +456,7 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
                 }
                 lock (this.Download_List[fileName])
                 {
-                    this.Download_List[fileName].Status = DownloadStatus.Queued;
+                    this.Download_List[fileName].Status = Download_Status.Queued;
                 }
             }
             else
@@ -513,7 +512,7 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
             /// <summary>
             /// 
             /// </summary>
-            public DownloadStatus Status;
+            public Download_Status Status;
             /// <summary>
             /// 
             /// </summary>
@@ -531,34 +530,8 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
             /// </summary>
             public DownloadItem()
             {
-                this.Status = DownloadStatus.Queued;
+                this.Status = Download_Status.Queued;
             }
-        }
-        /// <summary>
-        /// 
-        /// </summary>
-        public enum DownloadStatus
-        {
-            /// <summary>
-            /// 
-            /// </summary>
-            Queued,
-            /// <summary>
-            /// 
-            /// </summary>
-            Downloading,
-            /// <summary>
-            /// 
-            /// </summary>
-            Downloaded,
-            /// <summary>
-            /// 
-            /// </summary>
-            Canceled,
-            /// <summary>
-            /// 
-            /// </summary>
-            Unknown
         }
     }
 }

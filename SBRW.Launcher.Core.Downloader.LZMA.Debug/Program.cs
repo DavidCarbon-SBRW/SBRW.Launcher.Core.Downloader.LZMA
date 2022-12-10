@@ -19,6 +19,20 @@ namespace SBRW.Launcher.Core.Downloader.LZMA.Debug
 
         static void Main(string[] args)
         {
+            if(!Directory.Exists(GameFolderPath))
+            {
+                Directory.CreateDirectory(GameFolderPath);
+            }
+
+            Download_Start();
+            while (LZMA_Downloader != null)
+            {
+                /* Do Nothing */
+            }
+        }
+
+        public static void Download_Start()
+        {
             try
             {
                 LZMA_Downloader = new Download_LZMA_Data(3, 2, 16, DownloadStartTime ?? DateTime.Now)
@@ -30,7 +44,6 @@ namespace SBRW.Launcher.Core.Downloader.LZMA.Debug
                 {
                     if (D_Live_Events.Recorded_Exception != null && LZMA_Downloader.Downloading)
                     {
-                        Console.WriteLine(D_Live_Events.Recorded_Exception);
                         OnDownloadFailed(D_Live_Events.Recorded_Exception);
                     }
                 };
@@ -39,7 +52,7 @@ namespace SBRW.Launcher.Core.Downloader.LZMA.Debug
                 {
                     if (Live_Data.Complete)
                     {
-                        OnDownloadFinished();
+                        Download_Start();
                     }
                 };
 
@@ -83,10 +96,6 @@ namespace SBRW.Launcher.Core.Downloader.LZMA.Debug
                     DownloadStartTime = DateTime.Now;
                     Console.WriteLine("Downloading: Core GameFiles".ToUpper());
                     LZMA_Downloader.StartDownload(Launcher_CDN, string.Empty, GameFolderPath, false, false, 1130632198);
-                    while (LZMA_Downloader.Downloading)
-                    {
-
-                    }
                 }
                 else
                 {
@@ -127,7 +136,7 @@ namespace SBRW.Launcher.Core.Downloader.LZMA.Debug
 
                 try
                 {
-                    speechFile = Download_LZMA_Support.SpeechFiles("en");
+                    speechFile = Translations.Speech_Files("en");
 
                     Uri URLCall = new Uri(Launcher_CDN + "/" + speechFile + "/index.xml");
                     ServicePointManager.FindServicePoint(URLCall).ConnectionLeaseTimeout = (int)TimeSpan.FromSeconds(60).TotalMilliseconds;
@@ -225,6 +234,9 @@ namespace SBRW.Launcher.Core.Downloader.LZMA.Debug
         {
             try
             {
+
+                Console.WriteLine(Error.ToString());
+
                 if (LZMA_Downloader != null)
                 {
                     LZMA_Downloader.Stop();

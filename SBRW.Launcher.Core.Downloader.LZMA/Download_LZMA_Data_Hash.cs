@@ -25,11 +25,11 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
         /// <summary>
         /// 
         /// </summary>
-        public static object Queue_Hash_Lock { get; set; }
+        public object Queue_Hash_Lock { get; set; }
         /// <summary>
         /// 
         /// </summary>
-        public static int Worker_Count { get; set; }
+        public int Worker_Count { get; set; }
         /// <summary>
         /// 
         /// </summary>
@@ -37,20 +37,67 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
         /// <summary>
         /// 
         /// </summary>
-        public static Download_LZMA_Data_Hash Live_Instance { get; set; }
-
-        static Download_LZMA_Data_Hash()
+        public Download_LZMA_Data_Hash()
         {
             Queue_Hash_Lock = new object();
             Worker_Count = 0;
-            Live_Instance = new Download_LZMA_Data_Hash();
+            Use_Cache = true;
+            File_List = new Dictionary<string, Download_LZMA_Data_Hash_Tuple>();
+            Queue_Hash = new Queue<string>();
         }
-
-        private Download_LZMA_Data_Hash()
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="P_Worker_Count"></param>
+        public Download_LZMA_Data_Hash(int P_Worker_Count)
         {
-            this.Use_Cache = true;
-            this.File_List = new Dictionary<string, Download_LZMA_Data_Hash_Tuple>();
-            this.Queue_Hash = new Queue<string>();
+            Queue_Hash_Lock = new object();
+            Worker_Count = P_Worker_Count;
+            Use_Cache = true;
+            File_List = new Dictionary<string, Download_LZMA_Data_Hash_Tuple>();
+            Queue_Hash = new Queue<string>();
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="P_Worker_Count"></param>
+        /// <param name="P_Use_Cache"></param>
+        public Download_LZMA_Data_Hash(int P_Worker_Count, bool P_Use_Cache)
+        {
+            Queue_Hash_Lock = new object();
+            Worker_Count = P_Worker_Count;
+            Use_Cache = P_Use_Cache;
+            File_List = new Dictionary<string, Download_LZMA_Data_Hash_Tuple>();
+            Queue_Hash = new Queue<string>();
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="P_Worker_Count"></param>
+        /// <param name="P_Use_Cache"></param>
+        /// <param name="P_File_List"></param>
+        public Download_LZMA_Data_Hash(int P_Worker_Count, bool P_Use_Cache, Dictionary<string, Download_LZMA_Data_Hash_Tuple> P_File_List)
+        {
+            Queue_Hash_Lock = new object();
+            Worker_Count = P_Worker_Count;
+            Use_Cache = P_Use_Cache;
+            File_List = P_File_List;
+            Queue_Hash = new Queue<string>();
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="P_Worker_Count"></param>
+        /// <param name="P_Use_Cache"></param>
+        /// <param name="P_File_List"></param>
+        /// <param name="P_Queue_Hash"></param>
+        public Download_LZMA_Data_Hash(int P_Worker_Count, bool P_Use_Cache, Dictionary<string, Download_LZMA_Data_Hash_Tuple> P_File_List, Queue<string> P_Queue_Hash)
+        {
+            Queue_Hash_Lock = new object();
+            Worker_Count = P_Worker_Count;
+            Use_Cache = P_Use_Cache;
+            File_List = P_File_List;
+            Queue_Hash = P_Queue_Hash;
         }
 
         private void BackgroundWorker_DoWork(object sender, DoWorkEventArgs args)
