@@ -3,15 +3,13 @@ using SBRW.Launcher.Core.Downloader.LZMA.EventArg_;
 using SBRW.Launcher.Core.Downloader.LZMA.Web_;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.IO;
 using System.Net;
 using System.Net.Cache;
 using System.Text;
 using System.Threading;
 using System.Xml;
-using static SBRW.Launcher.Core.Downloader.LZMA.Download_LZMA_Enumerator;
-//using static SBRW.Launcher.Core.Downloader.LZMA.Download_LZMA_Data_Manager;
+using SBRW.Launcher.Core.Downloader.LZMA.Extension_;
 
 namespace SBRW.Launcher.Core.Downloader.LZMA
 {
@@ -21,10 +19,20 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
     public class Download_LZMA_Data
     {
         /// <summary>
-        /// Time in Seconds before UI is Updated
+        /// 
         /// </summary>
-        /// <remarks>Default Value is 1000 (1 Second)</remarks>
-        public int Progress_Update_Frequency { get; set; } = 1000;
+        public Download_Information_LZMA? Download_Status_Information { get; internal set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public Download_Information_LZMA? Download_Status() { return Download_Status_Information; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public bool Disable_Download_Status_Information { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
         private Thread MThread { get; set; }
         /// <summary>
         /// 
@@ -136,6 +144,19 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
         {
             try
             {
+                if (!Disable_Download_Status_Information && !MStopFlag)
+                {
+                    Download_Status_Information = new Download_Information_LZMA()
+                    {
+                        File_Name = Download_File_Name,
+                        File_Size_Total = Compressed_Length,
+                        File_Size_Current = Download_Current,
+                        File_Size_Remaining = Compressed_Length - Download_Current,
+                        Download_Percentage = (int)((((double)Download_Current) / Compressed_Length) * 100),
+                        Start_Time = Progress_Start_Time ?? DateTime.Now
+                    };
+                }
+
                 if (this.Live_Progress != null && !MStopFlag)
                 {
                     this.Live_Progress(this, new Download_Data_Progress_EventArgs(Download_Current, Compressed_Length, Download_File_Name, Progress_Start_Time??DateTime.Now));
@@ -287,6 +308,19 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
 
         private void Downloader_DownloadFileCompleted(object sender, DownloadDataCompletedEventArgs Live_Download_Data)
         {
+            if (Live_Download_Data.Error != null && !Disable_Download_Status_Information && !MStopFlag)
+            {
+                Download_Status_Information = new Download_Information_LZMA()
+                {
+                    File_Size_Total = 1,
+                    File_Size_Current = 1,
+                    File_Size_Remaining = 0,
+                    Download_Percentage = 100,
+                    Start_Time = Progress_Start_Time ?? DateTime.Now,
+                    Download_Complete = true
+                };
+            }
+
             if (Live_Download_Data.Error != null && this.Internal_Web_Error != null && !MStopFlag)
             {
                 this.Internal_Web_Error(this, new Download_Exception_EventArgs(Live_Download_Data.Error, DateTime.Now));
@@ -615,7 +649,7 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
                                     num13 = num6;
                                     num5 += (long)array2.Length;
                                     num6++;
-                                    if ((this.MDownloadManager.GetStatus(string.Format("{0}/section{1}.dat", text, num6)) != Download_Status.Unknown) && 
+                                    if ((this.MDownloadManager.GetStatus(string.Format("{0}/section{1}.dat", text, num6)) != Download_LZMA_Enumerator.Download_Status.Unknown) && 
                                         (num5 < Header_Length_Compressed))
                                     {
                                         this.MDownloadManager.ScheduleFile(string.Format("{0}/section{1}.dat", text, num6));
