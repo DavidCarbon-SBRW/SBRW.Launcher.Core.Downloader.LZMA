@@ -109,6 +109,10 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
         /// <summary>
         /// 
         /// </summary>
+        public int Download_Percentage_Parts { get; set; } = 1;
+        /// <summary>
+        /// 
+        /// </summary>
         /// <param name="Event_Hook"></param>
         /// <param name="Exception_Caught"></param>
         internal void Exception_Router(bool Event_Hook, Exception Exception_Caught)
@@ -152,7 +156,7 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
                         File_Size_Total = Compressed_Length,
                         File_Size_Current = Download_Current,
                         File_Size_Remaining = Compressed_Length - Download_Current,
-                        Download_Percentage = (int)((((double)Download_Current) / Compressed_Length) * 100),
+                        Download_Percentage = (int)(((double)Download_Current) / Compressed_Length * 100 / Download_Percentage_Parts),
                         Start_Time = Progress_Start_Time ?? DateTime.Now
                     };
                 }
