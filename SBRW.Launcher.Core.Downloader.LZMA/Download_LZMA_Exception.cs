@@ -26,8 +26,8 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
         /// 
         /// </summary>
         /// <param name="Exception_Message"></param>
-        /// <param name="Recevied_Exception"></param>
-        public Download_LZMA_Exception(string Exception_Message, Exception Recevied_Exception) : base(Exception_Message, Recevied_Exception)
+        /// <param name="Received_Exception"></param>
+        public Download_LZMA_Exception(string Exception_Message, Exception Received_Exception) : base(Exception_Message, Received_Exception)
         {
         }
         /// <summary>
