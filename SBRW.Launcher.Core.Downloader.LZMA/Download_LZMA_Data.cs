@@ -411,8 +411,8 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
             bool flag = bool.Parse(array[3]);
             bool useCache = bool.Parse(array[4]);
             ulong num = ulong.Parse(array[5]);
-            byte[]? array2;
-            XmlNodeList xmlNodeList;
+            byte[]? array2 = default;
+            XmlNodeList? xmlNodeList = default;
             try
             {
                 XmlDocument indexFile = this.GetIndexFile(text + "/index.xml", useCache);
@@ -447,11 +447,15 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
                     Client.Headers.Add("Accept-Encoding", "gzip,deflate");
                     Client.Headers.Add("Accept-Charset", "ISO-8859-1,utf-8;q=0.7,*;q=0.7");
                     int num6 = 1;
-                    array2 = null;
                     xmlNodeList = indexFile.SelectNodes("/index/fileinfo");
                     this.MDownloadManager.Initialize(indexFile, text);
                     if (flag)
                     {
+                        if (LZMA_Data_Hash == default)
+                        {
+                            LZMA_Data_Hash = new Download_LZMA_Data_Hash();
+                        }
+
                         LZMA_Data_Hash.Clear();
                         LZMA_Data_Hash.Start(indexFile, text3, text2 + ".hsh", this.MHashThreads);
                     }
@@ -491,6 +495,10 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
                         string fileName = text4 + "/" + innerText;
                         int num10 = int.Parse(xmlNode.SelectSingleNode("section").InnerText);
                         num11 = int.Parse(xmlNode.SelectSingleNode("offset").InnerText);
+                        if (LZMA_Data_Hash == default)
+                        {
+                            LZMA_Data_Hash = new Download_LZMA_Data_Hash();
+                        }
                         if (flag)
                         {
                             if (list.Count == 0)
@@ -557,209 +565,226 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
                         {
                             break;
                         }
-                        string text5 = xmlNode2.SelectSingleNode("path").InnerText;
-                        string innerText2 = xmlNode2.SelectSingleNode("file").InnerText;
-                        if (!string.IsNullOrWhiteSpace(text3))
-                        {
-                            int num14 = text5.IndexOf("/");
-                            if (num14 >= 0)
-                            {
-                                text5 = text5.Replace(text5.Substring(0, num14), text3);
-                            }
-                            else
-                            {
-                                text5 = text3;
-                            }
-                        }
-                        string text6 = text5 + "/" + innerText2;
-                        int num15 = int.Parse(xmlNode2.SelectSingleNode("length").InnerText);
-                        int num16 = 0;
-                        XmlNode xmlNode3 = xmlNode2.SelectSingleNode("compressed");
-                        if (xmlNode2.SelectSingleNode("section") != null && num6 < int.Parse(xmlNode2.SelectSingleNode("section").InnerText))
-                        {
-                            num6 = int.Parse(xmlNode2.SelectSingleNode("section").InnerText);
-                        }
-                        string text7 = string.Empty;
-                        if (xmlNode2.SelectSingleNode("hash") != null && LZMA_Data_Hash.HashesMatch(text6))
-                        {
-                            num16 += num15;
-                            if (xmlNode3 != null)
-                            {
-                                if (num == 0uL)
-                                {
-                                    Sub_Index_Hash_Length += (long)int.Parse(xmlNode3.InnerText);
-                                }
-                                num5 += (long)int.Parse(xmlNode3.InnerText);
-                                num11 += int.Parse(xmlNode3.InnerText);
-                            }
-                            else
-                            {
-                                if (num == 0uL)
-                                {
-                                    Sub_Index_Hash_Length += (long)num15;
-                                }
-                                num5 += (long)num15;
-                                num11 += num15;
-                            }
-
-                            Updated_Progress(Sub_Index_Hash_Length, Header_Length_Compressed, text6);
-
-                            int num17 = int.Parse(xmlNode2.SelectSingleNode("section").InnerText);
-                            if (num13 != num17)
-                            {
-                                for (int j = num13 + 1; j < num17; j++)
-                                {
-                                    this.MDownloadManager.CancelDownload(string.Format("{0}/section{1}.dat", text, j));
-                                }
-                                num13 = num17 - 1;
-                            }
-                        }
                         else
                         {
-                            Directory.CreateDirectory(text5);
-                            FileStream fileStream = File.Create(text6);
-                            int num18 = num15;
-                            if (xmlNode3 != null)
+                            string text5 = xmlNode2.SelectSingleNode("path").InnerText;
+                            string innerText2 = xmlNode2.SelectSingleNode("file").InnerText;
+                            if (!string.IsNullOrWhiteSpace(text3))
                             {
-                                num18 = int.Parse(xmlNode3.InnerText);
-                            }
-                            int k = 0;
-                            bool flag3 = false;
-                            int num19 = 13;
-                            while (k < num18)
-                            {
-                                if (array2 == null || num11 >= array2.Length)
+                                int num14 = text5.IndexOf("/");
+                                if (num14 >= 0)
                                 {
-                                    if (xmlNode2.SelectSingleNode("offset") != null && !flag3)
-                                    {
-                                        num11 = int.Parse(xmlNode2.SelectSingleNode("offset").InnerText);
-                                    }
-                                    else
-                                    {
-                                        num11 = 0;
-                                    }
-                                    text7 = string.Format("{0}/section{1}.dat", text, num6);
-                                    for (int l = num13 + 1; l < num6; l++)
-                                    {
-                                        this.MDownloadManager.CancelDownload(string.Format("{0}/section{1}.dat", text, l));
-                                    }
-                                    array2 = null;
-                                    array2 = this.MDownloadManager.GetFile(text7);
-                                    if (array2 == null)
-                                    {
-                                        Exception_Router(true, new ArgumentNullException("array2", "DownloadManager returned a null buffer"));
-                                        return;
-                                    }
-                                    num13 = num6;
-                                    num5 += (long)array2.Length;
-                                    num6++;
-                                    if ((this.MDownloadManager.GetStatus(string.Format("{0}/section{1}.dat", text, num6)) != Download_LZMA_Enumerator.Download_Status.Unknown) && 
-                                        (num5 < Header_Length_Compressed))
-                                    {
-                                        this.MDownloadManager.ScheduleFile(string.Format("{0}/section{1}.dat", text, num6));
-                                    }
+                                    text5 = text5.Replace(text5.Substring(0, num14), text3);
                                 }
                                 else
                                 {
-                                    if (num18 - k > array2.Length - num11)
+                                    text5 = text3;
+                                }
+                            }
+                            string text6 = text5 + "/" + innerText2;
+                            int num15 = int.Parse(xmlNode2.SelectSingleNode("length").InnerText);
+                            int num16 = 0;
+                            XmlNode xmlNode3 = xmlNode2.SelectSingleNode("compressed");
+                            if (xmlNode2.SelectSingleNode("section") != null && num6 < int.Parse(xmlNode2.SelectSingleNode("section").InnerText))
+                            {
+                                num6 = int.Parse(xmlNode2.SelectSingleNode("section").InnerText);
+                            }
+                            string text7 = string.Empty;
+                            if (LZMA_Data_Hash == default)
+                            {
+                                LZMA_Data_Hash = new Download_LZMA_Data_Hash();
+                            }
+                            if (xmlNode2.SelectSingleNode("hash") != null && LZMA_Data_Hash.HashesMatch(text6))
+                            {
+                                num16 += num15;
+                                if (xmlNode3 != null)
+                                {
+                                    if (num == 0uL)
                                     {
-                                        text7 = string.Format("{0}/section{1}.dat", text, num6);
-                                        this.MDownloadManager.ScheduleFile(text7);
-                                        flag3 = true;
+                                        Sub_Index_Hash_Length += (long)int.Parse(xmlNode3.InnerText);
                                     }
-                                    int num20 = Math.Min(array2.Length - num11, num18 - k);
-                                    if (num19 != 0)
+                                    num5 += (long)int.Parse(xmlNode3.InnerText);
+                                    num11 += int.Parse(xmlNode3.InnerText);
+                                }
+                                else
+                                {
+                                    if (num == 0uL)
                                     {
-                                        if (xmlNode3 != null)
-                                        {
-                                            int num21 = Math.Min(num19, num20);
-                                            Buffer.BlockCopy(array2, num11, array4, 13 - num19, num21);
-                                            Buffer.BlockCopy(array2, num11 + num21, array3, 0, num20 - num21);
-                                            num19 -= num21;
-                                        }
-                                        else
-                                        {
-                                            Buffer.BlockCopy(array2, num11, array3, 0, num20);
-                                            num19 = 0;
-                                        }
+                                        Sub_Index_Hash_Length += (long)num15;
                                     }
-                                    else
-                                    {
-                                        Buffer.BlockCopy(array2, num11, array3, k - ((xmlNode3 != null) ? 13 : 0), num20);
-                                    }
-                                    num11 += num20;
-                                    k += num20;
-                                    Sub_Index_Hash_Length += (long)num20;
+                                    num5 += (long)num15;
+                                    num11 += num15;
                                 }
 
                                 Updated_Progress(Sub_Index_Hash_Length, Header_Length_Compressed, text6);
-                            }
-                            if (xmlNode3 != null)
-                            {
-                                if (!IsLzma(array4))
-                                {
-                                    Exception_Router(true, new Download_LZMA_Exception("Compression algorithm not recognized: " + text7));
-                                    return;
-                                }
-                                fileStream.Close();
-                                fileStream.Dispose();
-                                IntPtr outPropsSize = new IntPtr(5);
-                                byte[] array5 = new byte[5];
-                                for (int m = 0; m < 5; m++)
-                                {
-                                    array5[m] = array4[m];
-                                }
-                                long num22 = 0L;
-                                for (int n = 0; n < 8; n++)
-                                {
-                                    num22 += (long)((long)array4[n + 5] << 8 * n);
-                                }
-                                if (num22 != (long)num15)
-                                {
-                                    Exception_Router(true, new Download_LZMA_Exception("Compression data length in header '" + num22 + "' != than in metadata '" + num15 + "'"));
-                                    return;
-                                }
-                                int num23 = num18;
-                                num18 -= 13;
-                                IntPtr intPtr = new IntPtr(num18);
-                                IntPtr value = new IntPtr(num22);
-                                int num24 = Download_LZMA.LzmaUncompressBuf2File(text6, ref value, array3, ref intPtr, array5, outPropsSize);
 
-                                /* TODO: use total file lenght and extracted file length instead of files checked and total array size. */
-                                fileschecked =+ Sub_Index_Hash_Length;
-
-                                if (this.Live_Extract != null && !MStopFlag)
+                                int num17 = int.Parse(xmlNode2.SelectSingleNode("section").InnerText);
+                                if (num13 != num17)
                                 {
-                                    this.Live_Extract(this, new Download_Extract_Progress_EventArgs(text6, Header_Length_Compressed, fileschecked, Progress_Start_Time??DateTime.Now));
+                                    for (int j = num13 + 1; j < num17; j++)
+                                    {
+                                        this.MDownloadManager.CancelDownload(string.Format("{0}/section{1}.dat", text, j));
+                                    }
+                                    num13 = num17 - 1;
                                 }
-
-                                if (num24 != 0)
-                                {
-                                    Exception_Router(true, new Download_LZMA_Exception_Uncompression(num24, "Decompression returned " + num24));
-                                    return;
-                                }
-                                if (value.ToInt32() != num15)
-                                {
-                                    Exception_Router(true, new Download_LZMA_Exception("Decompression returned different size '" + value.ToInt32() + "' than metadata '" + num15 + "'"));
-                                    return;
-                                }
-                                num16 += (int)value;
                             }
                             else
                             {
-                                fileStream.Write(array3, 0, num15);
-                                num16 += num15;
-                            }
-                            if (fileStream != null)
-                            {
-                                fileStream.Close();
-                                fileStream.Dispose();
+                                Directory.CreateDirectory(text5);
+                                FileStream fileStream = File.Create(text6);
+                                int num18 = num15;
+                                if (xmlNode3 != null)
+                                {
+                                    num18 = int.Parse(xmlNode3.InnerText);
+                                }
+                                int k = 0;
+                                bool flag3 = false;
+                                int num19 = 13;
+                                while (k < num18)
+                                {
+                                    if (!MStopFlag)
+                                    {
+                                        if (array2 == null || num11 >= array2.Length)
+                                        {
+                                            if (xmlNode2.SelectSingleNode("offset") != null && !flag3)
+                                            {
+                                                num11 = int.Parse(xmlNode2.SelectSingleNode("offset").InnerText);
+                                            }
+                                            else
+                                            {
+                                                num11 = 0;
+                                            }
+                                            text7 = string.Format("{0}/section{1}.dat", text, num6);
+                                            for (int l = num13 + 1; l < num6; l++)
+                                            {
+                                                this.MDownloadManager.CancelDownload(string.Format("{0}/section{1}.dat", text, l));
+                                            }
+                                            array2 = this.MDownloadManager.GetFile(text7);
+                                            if(!MStopFlag)
+                                            {
+                                                if (array2 == null)
+                                                {
+                                                    Exception_Router(true, new ArgumentNullException("array2", "DownloadManager returned a null buffer"));
+                                                    return;
+                                                }
+                                                num13 = num6;
+                                                num5 += (long)array2.Length;
+                                                num6++;
+                                                if ((this.MDownloadManager.GetStatus(string.Format("{0}/section{1}.dat", text, num6)) != Download_LZMA_Enumerator.Download_Status.Unknown) &&
+                                                    (num5 < Header_Length_Compressed))
+                                                {
+                                                    this.MDownloadManager.ScheduleFile(string.Format("{0}/section{1}.dat", text, num6));
+                                                }
+                                            }
+                                        }
+                                        else
+                                        {
+                                            if (num18 - k > array2.Length - num11)
+                                            {
+                                                text7 = string.Format("{0}/section{1}.dat", text, num6);
+                                                this.MDownloadManager.ScheduleFile(text7);
+                                                flag3 = true;
+                                            }
+                                            int num20 = Math.Min(array2.Length - num11, num18 - k);
+                                            if (num19 != 0)
+                                            {
+                                                if (xmlNode3 != null)
+                                                {
+                                                    int num21 = Math.Min(num19, num20);
+                                                    Buffer.BlockCopy(array2, num11, array4, 13 - num19, num21);
+                                                    Buffer.BlockCopy(array2, num11 + num21, array3, 0, num20 - num21);
+                                                    num19 -= num21;
+                                                }
+                                                else
+                                                {
+                                                    Buffer.BlockCopy(array2, num11, array3, 0, num20);
+                                                    num19 = 0;
+                                                }
+                                            }
+                                            else
+                                            {
+                                                Buffer.BlockCopy(array2, num11, array3, k - ((xmlNode3 != null) ? 13 : 0), num20);
+                                            }
+                                            num11 += num20;
+                                            k += num20;
+                                            Sub_Index_Hash_Length += (long)num20;
+                                        }
+
+                                        Updated_Progress(Sub_Index_Hash_Length, Header_Length_Compressed, text6);
+                                    }
+                                }
+                                if (xmlNode3 != null)
+                                {
+                                    if (!IsLzma(array4))
+                                    {
+                                        Exception_Router(true, new Download_LZMA_Exception("Compression algorithm not recognized: " + text7));
+                                        return;
+                                    }
+                                    fileStream.Close();
+                                    fileStream.Dispose();
+                                    IntPtr outPropsSize = new IntPtr(5);
+                                    byte[] array5 = new byte[5];
+                                    for (int m = 0; m < 5; m++)
+                                    {
+                                        array5[m] = array4[m];
+                                    }
+                                    long num22 = 0L;
+                                    for (int n = 0; n < 8; n++)
+                                    {
+                                        num22 += (long)((long)array4[n + 5] << 8 * n);
+                                    }
+                                    if (num22 != (long)num15)
+                                    {
+                                        Exception_Router(true, new Download_LZMA_Exception("Compression data length in header '" + num22 + "' != than in metadata '" + num15 + "'"));
+                                        return;
+                                    }
+                                    int num23 = num18;
+                                    num18 -= 13;
+                                    IntPtr intPtr = new IntPtr(num18);
+                                    IntPtr value = new IntPtr(num22);
+                                    int num24 = Download_LZMA.LzmaUncompressBuf2File(text6, ref value, array3, ref intPtr, array5, outPropsSize);
+
+                                    /* TODO: use total file lenght and extracted file length instead of files checked and total array size. */
+                                    fileschecked = +Sub_Index_Hash_Length;
+
+                                    if (this.Live_Extract != null && !MStopFlag)
+                                    {
+                                        this.Live_Extract(this, new Download_Extract_Progress_EventArgs(text6, Header_Length_Compressed, fileschecked, Progress_Start_Time ?? DateTime.Now));
+                                    }
+
+                                    if (num24 != 0)
+                                    {
+                                        Exception_Router(true, new Download_LZMA_Exception_Uncompression(num24, "Decompression returned " + num24));
+                                        return;
+                                    }
+                                    if (value.ToInt32() != num15)
+                                    {
+                                        Exception_Router(true, new Download_LZMA_Exception("Decompression returned different size '" + value.ToInt32() + "' than metadata '" + num15 + "'"));
+                                        return;
+                                    }
+                                    num16 += (int)value;
+                                }
+                                else
+                                {
+                                    fileStream.Write(array3, 0, num15);
+                                    num16 += num15;
+                                }
+                                if (fileStream != null)
+                                {
+                                    fileStream.Close();
+                                    fileStream.Dispose();
+                                }
                             }
                         }
                     }
 
                     if (!MStopFlag)
                     {
+                        if (LZMA_Data_Hash == default)
+                        {
+                            LZMA_Data_Hash = new Download_LZMA_Data_Hash();
+                        }
+
                         LZMA_Data_Hash.WriteHashCache(text2 + ".hsh", false);
                     }
                     
@@ -783,6 +808,11 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
             {
                 if (flag)
                 {
+                    if (LZMA_Data_Hash == default)
+                    {
+                        LZMA_Data_Hash = new Download_LZMA_Data_Hash();
+                    }
+
                     LZMA_Data_Hash.Clear();
                 }
                 this.MDownloadManager.Clear();
@@ -828,6 +858,10 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
                     Client.Headers.Add("Accept-Encoding", "gzip,deflate");
                     Client.Headers.Add("Accept-Charset", "ISO-8859-1,utf-8;q=0.7,*;q=0.7");
                     XmlNodeList xmlNodeList = indexFile.SelectNodes("/index/fileinfo");
+                    if (LZMA_Data_Hash == default)
+                    {
+                        LZMA_Data_Hash = new Download_LZMA_Data_Hash();
+                    }
                     LZMA_Data_Hash.Clear();
                     LZMA_Data_Hash.Start(indexFile, text2, text + ".hsh", this.MHashThreads);
                     long Total_Current_Length = 0;
@@ -922,6 +956,11 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
             {
                 if (flag2)
                 {
+                    if (LZMA_Data_Hash == default)
+                    {
+                        LZMA_Data_Hash = new Download_LZMA_Data_Hash();
+                    }
+
                     LZMA_Data_Hash.Clear();
                 }
             }

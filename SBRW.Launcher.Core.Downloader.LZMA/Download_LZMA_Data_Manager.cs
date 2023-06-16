@@ -41,7 +41,14 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
         /// <summary>
         /// 
         /// </summary>
-        public Download_LZMA_Data_Manager() => new Download_LZMA_Data_Manager(3, 16);
+        public Download_LZMA_Data_Manager()
+        {
+            this.Workers_Max = 3;
+            this.Active_Chunks_Max = 16;
+            this.Download_List = new Dictionary<string, DownloadItem>();
+            this.Download_Queue = new LinkedList<string>();
+            this.Workers_Live = new List<BackgroundWorker>();
+        }
         /// <summary>
         /// 
         /// </summary>
@@ -307,26 +314,29 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
             {
                 if (e.Error != null)
                 {
-                    if (this.Download_List.ContainsKey(str))
+                    if (!string.IsNullOrWhiteSpace(str)) 
                     {
-                        lock (this.Download_List[str])
+                        if (this.Download_List.ContainsKey(str))
                         {
-                            if (this.Download_List[str].Status == Download_Status.Canceled || this.Workers_Max <= 1)
+                            lock (this.Download_List[str])
                             {
-                                this.Download_List[str].Data = default;
-                                this.Download_List[str].Status = Download_Status.Canceled;
-                            }
-                            else
-                            {
-                                this.Download_List[str].Data = default;
-                                this.Download_List[str].Status = Download_Status.Queued;
-                                lock (this.Download_Queue)
+                                if (this.Download_List[str].Status == Download_Status.Canceled || this.Workers_Max <= 1)
                                 {
-                                    this.Download_Queue.AddLast(str);
+                                    this.Download_List[str].Data = default;
+                                    this.Download_List[str].Status = Download_Status.Canceled;
                                 }
-                                lock (this.Workers_Live)
+                                else
                                 {
-                                    this.Workers_Max--;
+                                    this.Download_List[str].Data = default;
+                                    this.Download_List[str].Status = Download_Status.Queued;
+                                    lock (this.Download_Queue)
+                                    {
+                                        this.Download_Queue.AddLast(str);
+                                    }
+                                    lock (this.Workers_Live)
+                                    {
+                                        this.Workers_Max--;
+                                    }
                                 }
                             }
                         }
@@ -337,7 +347,7 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
                     this.Active_Chunks_Max++;
                 }
             }
-            else
+            else if (!string.IsNullOrWhiteSpace(str))
             {
                 lock (this.Download_List[str])
                 {
@@ -355,10 +365,10 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
         /// </summary>
         /// <param name="fileName"></param>
         /// <returns></returns>
-        public byte[] GetFile(string fileName)
+        public byte[]? GetFile(string fileName)
         {
             Download_Status status;
-            byte[] data = null;
+            byte[]? data = null;
             this.ScheduleFile(fileName);
             lock (this.Download_List[fileName])
             {
@@ -516,11 +526,11 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
             /// <summary>
             /// 
             /// </summary>
-            private byte[] _data;
+            private byte[]? _data;
             /// <summary>
             /// 
             /// </summary>
-            public byte[] Data
+            public byte[]? Data
             {
                 get { return this._data; }
                 set { this._data = value; }
@@ -531,6 +541,7 @@ namespace SBRW.Launcher.Core.Downloader.LZMA
             public DownloadItem()
             {
                 this.Status = Download_Status.Queued;
+                this.Data = default;
             }
         }
     }
