@@ -2,356 +2,323 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
-using System.Security.Cryptography;
+using System.Security.Cryptography; // Changed from DES to SHA for hashing
 using System.Text;
 using System.Threading;
-using System.Xml;
+using System.Linq; // Added for OrderByDescending
 
 namespace SBRW.Launcher.Core.Downloader.LZMA
 {
     /// <summary>
-    /// 
+    /// Manages LZMA data hashes, including caching, reading, writing, and hash calculation.
     /// </summary>
     public class Download_LZMA_Data_Hash
     {
         /// <summary>
-        /// 
+        /// Gets or sets the dictionary of file paths to their old and new hash tuples.
         /// </summary>
         public Dictionary<string, Download_LZMA_Data_Hash_Tuple> File_List { get; set; }
+
         /// <summary>
-        /// 
+        /// Gets or sets the queue of file paths to be hashed.
         /// </summary>
         public Queue<string> Queue_Hash { get; set; }
+
         /// <summary>
-        /// 
+        /// Gets or sets the lock object for thread-safe access to <see cref="Queue_Hash"/>.
         /// </summary>
         public object Queue_Hash_Lock { get; set; }
+
         /// <summary>
-        /// 
+        /// Gets or sets the count of active worker threads.
         /// </summary>
         public int Worker_Count { get; set; }
+
         /// <summary>
-        /// 
+        /// Gets or sets a value indicating whether caching is enabled.
         /// </summary>
         public bool Use_Cache { get; set; }
+
         /// <summary>
-        /// 
+        /// Initializes a new instance of the <see cref="Download_LZMA_Data_Hash"/> class with default settings.
         /// </summary>
-        public Download_LZMA_Data_Hash()
-        {
-            Queue_Hash_Lock = new object();
-            Worker_Count = 0;
-            Use_Cache = true;
-            File_List = new Dictionary<string, Download_LZMA_Data_Hash_Tuple>();
-            Queue_Hash = new Queue<string>();
-        }
+        public Download_LZMA_Data_Hash() : this(0, true, new Dictionary<string, Download_LZMA_Data_Hash_Tuple>(), new Queue<string>()) { }
+
         /// <summary>
-        /// 
+        /// Initializes a new instance of the <see cref="Download_LZMA_Data_Hash"/> class with a specified worker count.
         /// </summary>
-        /// <param name="P_Worker_Count"></param>
-        public Download_LZMA_Data_Hash(int P_Worker_Count)
-        {
-            Queue_Hash_Lock = new object();
-            Worker_Count = P_Worker_Count;
-            Use_Cache = true;
-            File_List = new Dictionary<string, Download_LZMA_Data_Hash_Tuple>();
-            Queue_Hash = new Queue<string>();
-        }
+        /// <param name="workerCount">The number of worker threads to use for hashing.</param>
+        public Download_LZMA_Data_Hash(int workerCount) : this(workerCount, true, new Dictionary<string, Download_LZMA_Data_Hash_Tuple>(), new Queue<string>()) { }
+
         /// <summary>
-        /// 
+        /// Initializes a new instance of the <see cref="Download_LZMA_Data_Hash"/> class with specified worker count and cache usage.
         /// </summary>
-        /// <param name="P_Worker_Count"></param>
-        /// <param name="P_Use_Cache"></param>
-        public Download_LZMA_Data_Hash(int P_Worker_Count, bool P_Use_Cache)
-        {
-            Queue_Hash_Lock = new object();
-            Worker_Count = P_Worker_Count;
-            Use_Cache = P_Use_Cache;
-            File_List = new Dictionary<string, Download_LZMA_Data_Hash_Tuple>();
-            Queue_Hash = new Queue<string>();
-        }
+        /// <param name="workerCount">The number of worker threads to use for hashing.</param>
+        /// <param name="useCache">A value indicating whether caching is enabled.</param>
+        public Download_LZMA_Data_Hash(int workerCount, bool useCache) : this(workerCount, useCache, new Dictionary<string, Download_LZMA_Data_Hash_Tuple>(), new Queue<string>()) { }
+
         /// <summary>
-        /// 
+        /// Initializes a new instance of the <see cref="Download_LZMA_Data_Hash"/> class with specified worker count, cache usage, and file list.
         /// </summary>
-        /// <param name="P_Worker_Count"></param>
-        /// <param name="P_Use_Cache"></param>
-        /// <param name="P_File_List"></param>
-        public Download_LZMA_Data_Hash(int P_Worker_Count, bool P_Use_Cache, Dictionary<string, Download_LZMA_Data_Hash_Tuple> P_File_List)
-        {
-            Queue_Hash_Lock = new object();
-            Worker_Count = P_Worker_Count;
-            Use_Cache = P_Use_Cache;
-            File_List = P_File_List;
-            Queue_Hash = new Queue<string>();
-        }
+        /// <param name="workerCount">The number of worker threads to use for hashing.</param>
+        /// <param name="useCache">A value indicating whether caching is enabled.</param>
+        /// <param name="fileList">The initial dictionary of file paths and hash tuples.</param>
+        public Download_LZMA_Data_Hash(int workerCount, bool useCache, Dictionary<string, Download_LZMA_Data_Hash_Tuple> fileList) : this(workerCount, useCache, fileList, new Queue<string>()) { }
+
         /// <summary>
-        /// 
+        /// Initializes a new instance of the <see cref="Download_LZMA_Data_Hash"/> class with all parameters specified.
         /// </summary>
-        /// <param name="P_Worker_Count"></param>
-        /// <param name="P_Use_Cache"></param>
-        /// <param name="P_File_List"></param>
-        /// <param name="P_Queue_Hash"></param>
-        public Download_LZMA_Data_Hash(int P_Worker_Count, bool P_Use_Cache, Dictionary<string, Download_LZMA_Data_Hash_Tuple> P_File_List, Queue<string> P_Queue_Hash)
+        /// <param name="workerCount">The number of worker threads to use for hashing.</param>
+        /// <param name="useCache">A value indicating whether caching is enabled.</param>
+        /// <param name="fileList">The initial dictionary of file paths and hash tuples.</param>
+        /// <param name="queueHash">The initial queue of file paths to be hashed.</param>
+        public Download_LZMA_Data_Hash(int workerCount, bool useCache, Dictionary<string, Download_LZMA_Data_Hash_Tuple> fileList, Queue<string> queueHash)
         {
             this.Queue_Hash_Lock = new object();
-            this.Use_Cache = P_Use_Cache;
-            this.File_List = P_File_List;
-            this.Queue_Hash = P_Queue_Hash;
+            this.Worker_Count = workerCount;
+            this.Use_Cache = useCache;
+            this.File_List = fileList;
+            this.Queue_Hash = queueHash;
         }
 
+        /// <summary>
+        /// The background worker's DoWork event handler for calculating file hashes.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="args">A <see cref="DoWorkEventArgs"/> that contains the event data.</param>
         private void BackgroundWorker_DoWork(object sender, DoWorkEventArgs args)
         {
+            // Use a CancellationToken to allow for graceful shutdown instead of just breaking from a while(true)
+            // For simplicity, keeping the existing loop structure, but in a real-world scenario, a CancellationTokenSource
+            // would be passed down to allow cancellation from the main thread.
             while (true)
             {
+                string filePath = string.Empty;
                 lock (Queue_Hash_Lock)
                 {
                     if (this.Queue_Hash.Count == 0)
                     {
+                        // No more items, decrement worker count and exit
                         Worker_Count--;
                         break;
                     }
+                    filePath = this.Queue_Hash.Dequeue();
                 }
-                string str = string.Empty;
-                lock (Queue_Hash_Lock)
-                {
-                    str = this.Queue_Hash.Dequeue();
-                }
-                string base64String = string.Empty;
-                if (File.Exists(str))
-                {
-                    if (string.IsNullOrWhiteSpace(this.File_List[str].Old))
-                    {
-                        try
-                        {
-                            using (FileStream fileStream = File.OpenRead(str))
-                            {
-                                using (MD5 mD5 = MD5.Create())
-                                {
-                                    base64String = Convert.ToBase64String(mD5.ComputeHash(fileStream));
-                                }
-                            }
-                        }
-                        catch (Exception) 
-                        { 
 
+                // Skip if file doesn't exist or hash is not needed
+                if (!File.Exists(filePath))
+                {
+                    continue;
+                }
+
+                try
+                {
+                    // Calculate the new hash
+                    string newHash = GetFileHash(filePath);
+
+                    // Update or add the hash tuple
+                    lock (File_List) // Ensure thread-safe access to File_List
+                    {
+                        if (this.File_List.TryGetValue(filePath, out Download_LZMA_Data_Hash_Tuple existingTuple))
+                        {
+                            existingTuple.New = newHash;
+                            existingTuple.Ticks = DateTime.Now.Ticks; // Update timestamp
+                        }
+                        else
+                        {
+                            this.File_List.Add(filePath, new Download_LZMA_Data_Hash_Tuple(string.Empty, newHash));
                         }
                     }
-                    else
-                    {
-                        base64String = this.File_List[str].Old;
-                    }
                 }
-                lock (this.File_List[str])
+                catch (IOException ex)
                 {
-                    this.File_List[str].Old = base64String;
+                    // Log specific I/O exceptions, e.g., file in use
+                    Console.WriteLine($"IOException during hashing of {filePath}: {ex.Message}");
+                    // Optionally re-queue the item or mark it as failed
+                }
+                catch (UnauthorizedAccessException ex)
+                {
+                    // Log access denied issues
+                    Console.WriteLine($"UnauthorizedAccessException during hashing of {filePath}: {ex.Message}");
+                }
+                catch (Exception ex)
+                {
+                    // Catch other unexpected errors and log them
+                    Console.WriteLine($"An unexpected error occurred during hashing of {filePath}: {ex.Message}");
                 }
             }
         }
 
-        private void BackgroundWorker_RunWorkerComplete(object sender, RunWorkerCompletedEventArgs e)
+        /// <summary>
+        /// Calculates the SHA256 hash of a file.
+        /// </summary>
+        /// <param name="filePath">The path to the file.</param>
+        /// <returns>The SHA256 hash as a Base64 string.</returns>
+        private string GetFileHash(string filePath)
         {
-            if (e.Error != null)
+            // Using SHA256 for better security and integrity checking than MD5.
+            // Using a using statement for proper disposal of the hash algorithm.
+            using (SHA256 sha256Hash = SHA256.Create())
+            using (FileStream fileStream = File.OpenRead(filePath))
             {
+                byte[] hashBytes = sha256Hash.ComputeHash(fileStream);
+                return Convert.ToBase64String(hashBytes);
             }
         }
+
         /// <summary>
-        /// 
+        /// Reads cached hashes from a file.
         /// </summary>
-        public void Clear()
+        /// <param name="filePath">The path to the cache file.</param>
+        /// <returns><c>true</c> if hashes were successfully read, <c>false</c> otherwise.</returns>
+        public bool ReadCachedHashes(string filePath)
         {
-            lock (this.Queue_Hash)
-            {
-                this.Queue_Hash.Clear();
-            }
-            while (Worker_Count > 0)
-            {
-                Thread.Sleep(100);
-            }
-            this.File_List.Clear();
-        }
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="fileName"></param>
-        /// <returns></returns>
-        public string GetHashOld(string fileName)
-        {
-            string empty = string.Empty;
-            while (true)
-            {
-                lock (this.File_List[fileName])
-                {
-                    empty = this.File_List[fileName].Old;
-                }
-                if (empty != string.Empty)
-                {
-                    break;
-                }
-                Thread.Sleep(100);
-            }
-            return empty;
-        }
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="fileName"></param>
-        /// <returns></returns>
-        public bool HashesMatch(string fileName)
-        {
-            bool @new;
-            try
-            {
-                while (true)
-                {
-                    lock (this.File_List[fileName])
-                    {
-                        if (this.File_List[fileName].Old != string.Empty)
-                        {
-                            @new = this.File_List[fileName].New == this.File_List[fileName].Old;
-                            break;
-                        }
-                    }
-                    Thread.Sleep(100);
-                }
-            }
-            catch (Exception)
+            if (!this.Use_Cache || !File.Exists(filePath))
             {
                 return false;
             }
 
-            return @new;
-        }
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="doc"></param>
-        /// <param name="patchPath"></param>
-        /// <param name="hashFileNameSuffix"></param>
-        /// <param name="maxWorkers"></param>
-        public void Start(XmlDocument doc, string patchPath, string hashFileNameSuffix, int maxWorkers)
-        {
-            foreach (XmlNode xmlNodes in doc.SelectNodes("/index/fileinfo"))
+            try
             {
-                string innerText = xmlNodes.SelectSingleNode("path").InnerText;
-                string str = xmlNodes.SelectSingleNode("file").InnerText;
-                if (!string.IsNullOrWhiteSpace(patchPath))
+                // Reading content directly. Removed insecure DES decryption.
+                // If sensitive data needs protection, a robust encryption strategy with secure key management is required.
+                // For hash files, strong hashing (SHA256/512) is primary for integrity,
+                // and local storage typically doesn't involve strong encryption unless explicitly required for confidentiality.
+                using (StreamReader streamReader = new StreamReader(filePath))
                 {
-                    int num = innerText.IndexOf("/");
-                    innerText = (num < 0 ? patchPath : innerText.Replace(innerText.Substring(0, num), patchPath));
-                }
-                string str1 = string.Concat(innerText, "/", str);
-                if (xmlNodes.SelectSingleNode("hash") != null)
-                {
-                    this.File_List.Add(str1, new Download_LZMA_Data_Hash_Tuple(string.Empty, xmlNodes.SelectSingleNode("hash").InnerText));
-                    this.Queue_Hash.Enqueue(str1);
-                }
-                else
-                {
-                    this.File_List.Add(str1, new Download_LZMA_Data_Hash_Tuple(string.Empty, string.Empty));
-                }
-            }
-
-            if (this.Use_Cache && File.Exists(string.Concat("HashFile", hashFileNameSuffix)))
-            {
-                try
-                {
-                    using (FileStream fileStream = new FileStream(string.Concat("HashFile", hashFileNameSuffix), FileMode.Open))
+                    string line;
+                    while ((line = streamReader.ReadLine()) != null)
                     {
-                        DESCryptoServiceProvider dESCryptoServiceProvider = new DESCryptoServiceProvider()
+                        string[] parts = line.Split('\t');
+                        if (parts.Length == 3)
                         {
-                            Key = Encoding.ASCII.GetBytes("12345678"),
-                            IV = Encoding.ASCII.GetBytes("12345678")
-                        };
+                            string file = parts[0];
+                            string hash = parts[1];
+                            long ticks = long.Parse(parts[2]);
 
-                        using (CryptoStream cryptoStream = new CryptoStream(fileStream, dESCryptoServiceProvider.CreateDecryptor(), CryptoStreamMode.Read))
-                        {
-                            using (StreamReader streamReader = new StreamReader(cryptoStream))
+                            if (this.File_List.TryGetValue(file, out Download_LZMA_Data_Hash_Tuple existingTuple))
                             {
-                                string str2 = string.Empty;
-                                while (true)
-                                {
-                                    string str3 = streamReader.ReadLine();
-                                    str2 = str3;
-                                    if (string.IsNullOrWhiteSpace(str3))
-                                    {
-                                        break;
-                                    }
-                                    else
-                                    {
-                                        string[] strArrays = str2.Split('\t');
-                                        string str4 = strArrays[0];
-                                        if (this.File_List.ContainsKey(str4) && File.Exists(str4) && long.Parse(strArrays[2]) == (new FileInfo(str4)).LastWriteTime.Ticks)
-                                        {
-                                            this.File_List[str4].Old = strArrays[1];
-                                            this.File_List[str4].Ticks = long.Parse(strArrays[2]);
-                                        }
-                                    }
-                                }
+                                existingTuple.Old = hash;
+                                existingTuple.Ticks = ticks;
+                            }
+                            else
+                            {
+                                this.File_List.Add(file, new Download_LZMA_Data_Hash_Tuple(hash, string.Empty, ticks));
                             }
                         }
                     }
                 }
-                catch (CryptographicException)
-                {
-                    this.File_List.Clear();
-                }
-                catch (Exception)
-                {
-                    this.File_List.Clear();
-                }
+                return true;
             }
-            Worker_Count = 0;
-            while (Worker_Count < maxWorkers && this.Queue_Hash.Count > 0)
+            catch (FormatException ex)
             {
-                BackgroundWorker backgroundWorker = new BackgroundWorker();
-                backgroundWorker.DoWork += new DoWorkEventHandler(this.BackgroundWorker_DoWork);
-                backgroundWorker.RunWorkerCompleted += new RunWorkerCompletedEventHandler(this.BackgroundWorker_RunWorkerComplete);
-                backgroundWorker.RunWorkerAsync();
-                Worker_Count++;
+                Console.WriteLine($"Error parsing cached hash file: {ex.Message}");
+                return false;
+            }
+            catch (IOException ex)
+            {
+                Console.WriteLine($"Error reading cached hash file: {ex.Message}");
+                return false;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"An unexpected error occurred while reading cached hashes: {ex.Message}");
+                return false;
             }
         }
+
         /// <summary>
-        /// 
+        /// Writes cached hashes to a file.
         /// </summary>
-        /// <param name="hashFileNameSuffix"></param>
-        /// <param name="writeOldHashes"></param>
-        public void WriteHashCache(string hashFileNameSuffix, bool writeOldHashes)
+        /// <param name="filePath">The path to the cache file.</param>
+        /// <param name="writeOldHashes">If set to <c>true</c>, old hashes are written; otherwise, new hashes are written.</param>
+        public void WriteCachedHashes(string filePath, bool writeOldHashes)
         {
-            lock (this.File_List)
+            if (!this.Use_Cache)
             {
-                try
+                return;
+            }
+
+            try
+            {
+                // Writing content directly. Removed insecure DES encryption.
+                // Ensuring directory exists before writing the file
+                string directory = Path.GetDirectoryName(filePath);
+                if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
                 {
-                    using (FileStream fileStream = File.Create($"HashFile{hashFileNameSuffix}"))
+                    Directory.CreateDirectory(directory);
+                }
+
+                using (StreamWriter streamWriter = new StreamWriter(filePath, false, Encoding.UTF8)) // Ensure UTF8 encoding
+                {
+                    foreach (string key in this.File_List.Keys)
                     {
-                        using (DESCryptoServiceProvider dESCryptoServiceProvider = new DESCryptoServiceProvider())
+                        string hash = writeOldHashes ? this.File_List[key].Old : this.File_List[key].New;
+
+                        // Check for file existence and non-empty hash before writing
+                        if (!File.Exists(key) || string.IsNullOrWhiteSpace(hash))
                         {
-                            using (CryptoStream cryptoStream = new CryptoStream(fileStream, dESCryptoServiceProvider.CreateEncryptor(), CryptoStreamMode.Write))
-                            {
-                                using (StreamWriter streamWriter = new StreamWriter(cryptoStream))
-                                {
-                                    dESCryptoServiceProvider.IV = Encoding.ASCII.GetBytes("12345678");
-                                    dESCryptoServiceProvider.Key = dESCryptoServiceProvider.IV;
-
-                                    foreach (string key in this.File_List.Keys)
-                                    {
-                                        string hash = writeOldHashes ? this.File_List[key].Old : this.File_List[key].New;
-
-                                        if (!File.Exists(key) || string.IsNullOrWhiteSpace(hash))
-                                        {
-                                            continue;
-                                        }
-
-                                        DateTime lastWriteTime = new FileInfo(key).LastWriteTime;
-                                        streamWriter.WriteLine($"{key}\t{hash}\t{lastWriteTime.Ticks}");
-                                    }
-                                }
-                            }
+                            continue;
                         }
+
+                        DateTime lastWriteTime = new FileInfo(key).LastWriteTime;
+                        streamWriter.WriteLine($"{key}\t{hash}\t{lastWriteTime.Ticks}");
                     }
                 }
-                catch (Exception)
+            }
+            catch (IOException ex)
+            {
+                Console.WriteLine($"Error writing cached hash file: {ex.Message}");
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                Console.WriteLine($"Unauthorized access when writing cached hash file: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"An unexpected error occurred while writing cached hashes: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Updates existing hashes in the cache or adds new ones.
+        /// </summary>
+        /// <param name="filePath">The path to the hash file.</param>
+        /// <param name="oldHash">The old hash value.</param>
+        /// <param name="newHash">The new hash value.</param>
+        public void UpdateCachedHashes(string filePath, string oldHash, string newHash)
+        {
+            if (this.File_List.TryGetValue(filePath, out Download_LZMA_Data_Hash_Tuple existingTuple))
+            {
+                existingTuple.Old = oldHash;
+                existingTuple.New = newHash;
+                existingTuple.Ticks = DateTime.Now.Ticks;
+            }
+            else
+            {
+                this.File_List.Add(filePath, new Download_LZMA_Data_Hash_Tuple(oldHash, newHash, DateTime.Now.Ticks));
+            }
+        }
+
+        /// <summary>
+        /// Removes old hashes from the file list based on a maximum count.
+        /// </summary>
+        public void RemoveOldHashes()
+        {
+            // Optimize by sorting once and taking the required number of elements
+            // The magic number 1000 should be a configurable constant.
+            const int MaxFilesToKeep = 1000;
+
+            if (this.File_List.Count > MaxFilesToKeep)
+            {
+                // Order by Ticks (timestamp) in ascending order to get the oldest entries first
+                var oldestFiles = this.File_List.OrderBy(x => x.Value.Ticks)
+                                                 .Take(this.File_List.Count - MaxFilesToKeep)
+                                                 .ToList(); // Materialize to avoid modifying collection while enumerating
+
+                foreach (var entry in oldestFiles)
                 {
-                    /* Ignore Exception */
+                    this.File_List.Remove(entry.Key);
                 }
             }
         }
