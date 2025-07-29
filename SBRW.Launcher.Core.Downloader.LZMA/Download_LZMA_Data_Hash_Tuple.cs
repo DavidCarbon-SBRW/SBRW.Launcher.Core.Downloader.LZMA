@@ -3,41 +3,35 @@
 namespace SBRW.Launcher.Core.Downloader.LZMA
 {
     /// <summary>
-    /// 
+    /// Represents a tuple for storing old and new hashes of a file, along with its last write time ticks.
     /// </summary>
     public class Download_LZMA_Data_Hash_Tuple
     {
         /// <summary>
-        /// 
+        /// Gets or sets the old hash of the file (e.g., calculated from disk).
         /// </summary>
         public string Old { get; set; }
+
         /// <summary>
-        /// 
+        /// Gets or sets the new hash of the file (e.g., from manifest/metadata).
         /// </summary>
         public string New { get; set; }
+
         /// <summary>
-        /// 
+        /// Gets or sets the last write time ticks of the file when the hash was recorded.
         /// </summary>
         public long Ticks { get; set; }
+
         /// <summary>
-        /// 
+        /// Initializes a new instance of the <see cref="Download_LZMA_Data_Hash_Tuple"/> class.
         /// </summary>
-        /// <param name="oldHash"></param>
-        /// <param name="newHash"></param>
-        /// <param name="ticks"></param>
-        public Download_LZMA_Data_Hash_Tuple(string oldHash, string newHash, long ticks)
+        /// <param name="oldHash">The old hash.</param>
+        /// <param name="newHash">The new hash.</param>
+        public Download_LZMA_Data_Hash_Tuple(string oldHash, string newHash)
         {
-            this.Old = oldHash;
-            this.New = newHash;
-            this.Ticks = ticks;
-        }
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="oldHash"></param>
-        /// <param name="newHash"></param>
-        public Download_LZMA_Data_Hash_Tuple(string oldHash, string newHash) : this(oldHash, newHash, DateTime.Now.AddYears(1).Ticks)
-        {
+            Old = oldHash;
+            New = newHash;
+            Ticks = 0; // Default
         }
     }
 }
